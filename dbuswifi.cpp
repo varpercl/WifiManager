@@ -225,6 +225,7 @@ void DbusWifi::getAvailableConnectios()
 //      QVariant v = query.arguments().at(0).value<QDBusVariant>().variant();
 //      QList<QVariant> l = v.toList();
       qDebug() << " ========== " << arg.currentType();
+      availableConnections.clear();
       arg.beginArray();
       while(!arg.atEnd()) {
         QString c = qdbus_cast<QString>(arg);

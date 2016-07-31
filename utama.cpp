@@ -9,6 +9,7 @@
 #include <QDBusMetaType>
 #include <QDBusMessage>
 #include <QMetaObject>
+#include <QObject>
 
 typedef  QMap<QString, QMap<QString, QVariant> > NMVariantMap;
 
@@ -22,14 +23,18 @@ Utama::Utama(QWidget *parent) :
 
   debus = new DbusNetwork();
   wifi = new DbusWifi();
-  this->programInit();
+
+  // Connect signals
+  QObject::connect(debus, SIGNAL(stateChanged(int)), this, SLOT(_onNetworkManagerStateChanged(int)));
+
+  updateUI();
 //  qDebug() << debus->getDevices();
 //  qDebug()<<debus->getActiveConnection();
 //  qDebug()<<debus->getStatus();
 //  qDebug()<<debus->getDeviceType("/org/freedesktop/NetworkManager/Devices/0");
 }
 
-void Utama::programInit(){
+void Utama::updateUI(){
   int status = debus->getStatus();
 
   if(status < 3){
@@ -57,6 +62,8 @@ void Utama::programInit(){
   wifi->setDevice(wifiDev);
   QStringList listAp = wifi->getListAP();
   QStringList listSSID;
+  ssids.clear();
+  ui->listAccessPoint->clear();
   foreach(QString ap, listAp){
     QString resolved = wifi->resolveSSID(ap);
     listSSID.append(resolved);
@@ -154,4 +161,8 @@ void Utama::on_pushButton_clicked()
       qDebug() << query.errorMessage();
     }
   }
+}
+
+void Utama::_onNetworkManagerStateChanged(const int newState) {
+    updateUI();
 }
