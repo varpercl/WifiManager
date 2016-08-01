@@ -16,12 +16,13 @@ class Utama : public QMainWindow
 
 public:
     explicit Utama(QWidget *parent = 0);
-    void programInit();
+    void updateUI();
 
     ~Utama();
 
 private slots:
     void on_pushButton_clicked();
+    void _onNetworkManagerStateChanged(const int newState);
 
 private:
     Ui::Utama *ui;
