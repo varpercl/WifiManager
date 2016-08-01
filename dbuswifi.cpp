@@ -24,6 +24,7 @@ void DbusWifi::setDevice(QString dev){
 QStringList DbusWifi::getListAP(){
   qDebug()<<"INFO : Get List Access Point";
   QStringList accessPoints;
+  QStringList accessPointsBSSID;
 
   QDBusInterface iface(nmDBus,
                        device,
@@ -40,7 +41,15 @@ QStringList DbusWifi::getListAP(){
       while(!arg.atEnd())
       {
         QString element = qdbus_cast<QString>(arg);
-        accessPoints.append(element);
+        QString elementBSSID = resolveBSSID(element);
+
+        // To avoid duplicated APs due to NetworkManager's bug:
+        //   https://bugs.launchpad.net/ubuntu/+source/network-manager/+bug/793960
+        //   https://bugs.launchpad.net/ubuntu/+source/network-manager/+bug/891685
+        if (!accessPointsBSSID.contains(elementBSSID)) {
+          accessPoints.append(element);
+          accessPointsBSSID.append(elementBSSID);
+        }
       }
       arg.endArray();
     }else{
@@ -198,13 +207,34 @@ QString DbusWifi::resolveSSID(QString ap){
     QDBusMessage query = iface.call("Get","org.freedesktop.NetworkManager.AccessPoint","Ssid");
 
     if(query.type() == QDBusMessage::ReplyMessage){
-      SSID = query.arguments().at(0).value<QDBusVariant>().variant().toString();
+      SSID = query.arguments().at(0).value<QDBusVariant>().variant().toByteArray().constData();
       qDebug()<<"INFO : The SSID is "+SSID;
     }
   }else{
     qDebug()<<"ERROR : Dbus iface invalid "<<__FILE__<<__LINE__;
   }
   return SSID;
+}
+
+QString DbusWifi::resolveBSSID(QString ap){
+  qDebug()<<"INFO : Resolving BSSID name for " + ap;
+  QString BSSID;
+  QDBusInterface iface(nmDBus,
+                       ap,
+                       "org.freedesktop.DBus.Properties",
+                       QDBusConnection::systemBus());
+
+  if(iface.isValid()){
+    QDBusMessage query = iface.call("Get","org.freedesktop.NetworkManager.AccessPoint","HwAddress");
+
+    if(query.type() == QDBusMessage::ReplyMessage){
+      BSSID = query.arguments().at(0).value<QDBusVariant>().variant().toString();
+      qDebug()<<"INFO : The BSSID is "+BSSID;
+    }
+  }else{
+    qDebug()<<"ERROR : Dbus iface invalid "<<__FILE__<<__LINE__;
+  }
+  return BSSID;
 }
 
 void DbusWifi::getAvailableConnectios()
