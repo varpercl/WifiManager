@@ -14,6 +14,7 @@ public:
     QStringList getListAP();
     QString getActiveAP();
     QString resolveSSID(QString ap);
+    QString resolveBSSID(QString ap);
     ~DbusWifi();
 
     void getAvailableConnectios();
