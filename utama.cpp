@@ -10,10 +10,14 @@
 #include <QDBusMessage>
 #include <QMetaObject>
 #include <QObject>
+#include <stdexcept>
+
 
 typedef  QMap<QString, QMap<QString, QVariant> > NMVariantMap;
+Q_DECLARE_METATYPE(NMVariantMap)
 
-Q_DECLARE_METATYPE(NMVariantMap);
+const QString Utama::ETHERNET_CONNECTION_UUID = "e1ea3417-7c4b-4008-9406-51b9221c37a8";
+const QString Utama::ETHERNET_CONNECTION_ID = "Automatic Ethernet Connection";
 
 Utama::Utama(QWidget *parent) :
   QMainWindow(parent),
@@ -28,8 +32,9 @@ Utama::Utama(QWidget *parent) :
   QObject::connect(debus, SIGNAL(stateChanged(int)), this, SLOT(_onNetworkManagerStateChanged(int)));
 
   updateUI();
+  ui->ethernetSwitch->click();  // simulate user click to connect to ethernet
 //  qDebug() << debus->getDevices();
-//  qDebug()<<debus->getActiveConnection();
+//  qDebug()<<debus->getActiveConnections();
 //  qDebug()<<debus->getStatus();
 //  qDebug()<<debus->getDeviceType("/org/freedesktop/NetworkManager/Devices/0");
 }
@@ -161,6 +166,30 @@ void Utama::on_pushButton_clicked()
       qDebug() << query.errorMessage();
     }
   }
+}
+
+void Utama::on_ethernetSwitch_clicked(bool checked) {
+  try {
+    debus->ethernetDevicesSetAutoconnect(false);
+    debus->deactivateEthernetConnections();
+
+    if (checked) {
+      QString ethernetConn;
+
+      try {
+        ethernetConn = debus->getConnectionByUuid(Utama::ETHERNET_CONNECTION_UUID);
+      } catch (const std::runtime_error &except) {
+        ethernetConn = debus->createAutomaticEthernetConnection(Utama::ETHERNET_CONNECTION_UUID,
+                                                                Utama::ETHERNET_CONNECTION_ID);
+      }
+
+      debus->activateEthernetConnection(ethernetConn);
+    }
+  } catch (const std::runtime_error &except) {
+    ui->ethernetSwitch->setChecked(!checked);
+  }
+
+  ui->ethernetSwitch->setText(ui->ethernetSwitch->isChecked() ? "Disconnect" : "Connect");
 }
 
 void Utama::_onNetworkManagerStateChanged(const int newState) {

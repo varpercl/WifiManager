@@ -5,6 +5,7 @@
 #include <dbusnetwork.h>
 #include <dbuswifi.h>
 #include <QMap>
+#include <QString>
 
 namespace Ui {
 class Utama;
@@ -22,7 +23,12 @@ public:
 
 private slots:
     void on_pushButton_clicked();
+    void on_ethernetSwitch_clicked(bool checked);
     void _onNetworkManagerStateChanged(const int newState);
+
+public:
+  static const QString ETHERNET_CONNECTION_UUID;
+  static const QString ETHERNET_CONNECTION_ID;
 
 private:
     Ui::Utama *ui;
