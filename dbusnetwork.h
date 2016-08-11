@@ -5,19 +5,34 @@
 #include <QMap>
 #include <QString>
 #include <QVariant>
+#include <QStringList>
 
 class DbusNetwork : public QObject
 {
     Q_OBJECT
 public:
     explicit DbusNetwork(QObject *parent = 0);
-    QStringList getDevices();
-    QStringList getActiveConnection();
+    QStringList getDevices() const;
+    QStringList getEthernetDevices() const;
+    QStringList getActiveConnections() const;
+    QStringList getEthernetActiveConnections() const;
+    QString getActiveConnectionType(const QString &activeConn) const;
     QString getProperties(QString property);
     int getStatus() const;
-    int getDeviceType(QString dev);
+    int getDeviceType(const QString &dev) const;
 
     QStringList getConnections();
+    QString getConnectionByUuid(const QString &uuid) const;
+
+    bool isNetworkingEnabled() const;
+    void setNetworkingEnabled(bool enabled) const;
+    QString activateConnection(const QString &conn, const QString &device, const QString specific_object="/") const;
+    QString activateEthernetConnection(const QString &ethernetConn, const QString ethernetDevice=QString()) const;
+    void deactivateConnection(const QString &activeConn) const;
+    void deactivateEthernetConnections() const;
+    void disconnectEthernetDevices() const;
+    void ethernetDevicesSetAutoconnect(bool autoconnect) const;
+    QString createAutomaticEthernetConnection(const QString &uuid, const QString &id) const;
 
     ~DbusNetwork();
 
@@ -30,6 +45,12 @@ signals:
      * https://developer.gnome.org/NetworkManager/1.2/nm-dbus-types.html#NMState
      */
     void stateChanged(const int newState);
+
+    /**
+     * @brief Emitted when the NetworkManager's "ActiveConnections" property changed
+     * @param activeConnections a list of object paths of the current active connections
+     */
+    void activeConnectionsChanged(QStringList activeConnections);
 
 public slots:
 
