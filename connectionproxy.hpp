@@ -12,7 +12,11 @@ public:
   explicit ConnectionProxy(const QString conn, QObject *parent = 0);
   ~ConnectionProxy();
 
+  void update(const ConnectionSettings &properties) const;
+
   ConnectionSettings getSettings() const;
+
+  ConnectionSecrets getSecrets(const QString &settingName) const;
 
 signals:
 

@@ -1,27 +1,32 @@
-#include "utama.h"
-#include "ui_utama.h"
-#include <dbusnetwork.h>
+#include <stdexcept>
+
 #include <QDebug>
 #include <QDBusInterface>
 #include <QMap>
 #include <QVariant>
-#include <QUuid>
-#include <QDBusMetaType>
 #include <QDBusMessage>
 #include <QMetaObject>
 #include <QObject>
-#include <stdexcept>
+#include <QListWidgetItem>
+#include <Qt>
 
+#include "utama.h"
+#include "ui_utama.h"
+#include "dbusnetwork.h"
+#include "activeconnectionproxy.h"
+#include "passworddialog.h"
+#include "connectionproxy.hpp"
+#include "typedefs.h"
 
-typedef  QMap<QString, QMap<QString, QVariant> > NMVariantMap;
-Q_DECLARE_METATYPE(NMVariantMap)
 
 const QString Utama::ETHERNET_CONNECTION_UUID = "e1ea3417-7c4b-4008-9406-51b9221c37a8";
 const QString Utama::ETHERNET_CONNECTION_ID = "Automatic Ethernet Connection";
+const QString Utama::WIFI_CONNECTION_ID_PREFIX = "Automatic Wifi Connection";
 
 Utama::Utama(QWidget *parent) :
   QMainWindow(parent),
-  ui(new Ui::Utama)
+  ui(new Ui::Utama),
+  _activeWifiConnProxy(nullptr)
 {
   ui->setupUi(this);
 
@@ -74,7 +79,9 @@ void Utama::updateUI(){
     listSSID.append(resolved);
     ssids.insert(resolved, ap);
     // Tampilkan ke UI
-    ui->listAccessPoint->addItem(resolved);
+    QListWidgetItem *item = new QListWidgetItem(resolved);
+    item->setData(Qt::UserRole, QVariant(wifi->resolveBSSID(ap)));
+    ui->listAccessPoint->addItem(item);
   }
   qDebug()<<listSSID;
 
@@ -97,75 +104,21 @@ Utama::~Utama()
   delete ui;
   delete debus;
   delete wifi;
+
+  if (_activeWifiConnProxy != nullptr) {
+    delete _activeWifiConnProxy;
+    _activeWifiConnProxy = nullptr;
+  }
 }
 
-void Utama::on_pushButton_clicked()
-{
-    int i = ui->listAccessPoint->currentRow();
-    QString ssid = ui->listAccessPoint->item(i)->text();
-    qDebug() << " :::: ::: :: ### " << ssid;
+void Utama::on_pushButton_clicked() {
+    QString bssid = ui->listAccessPoint->currentItem()->data(Qt::UserRole).toString();
 
-    QString apoint;
-    QStringList listAp = wifi->getListAP();
-    foreach(QString ap, listAp){
-      QString resolved = wifi->resolveSSID(ap);
-      if(resolved == ssid) {
-        apoint = ap;
-        break;
-      }
+    try {
+      _connectToWifiNetwork(bssid);
+    } catch (const std::runtime_error& except) {
+      updateUI();
     }
-    qDebug() << apoint;
-
-    QString nmDBus = "org.freedesktop.NetworkManager";
-
-    QDBusInterface iface(nmDBus,
-                         "/org/freedesktop/NetworkManager/Settings",
-                         "org.freedesktop.NetworkManager.Settings",
-                         QDBusConnection::systemBus());
-  if(iface.isValid()) {
-    QMap<QString, QVariant> connection;
-    connection.insert("type", "802-11-wireless");
-    connection.insert("uuid", QUuid::createUuid().toString().remove('{').remove('}')); // The UUID of the new connection
-    connection.insert("id", "%%Walo this is the name of the connection%%"); // A name fo the connection
-
-    QMap<QString, QVariant> wifi;
-    wifi.insert("ssid", ssid.toLatin1()); // This is the name of the SSID --> must be a QByteArray
-    wifi.insert("mode", "infrastructure");
-
-    QMap<QString, QVariant> sec;
-    sec.insert("key-mgmt", "wpa-psk");
-    sec.insert("auth-alg", "open");
-    sec.insert("psk", "qwertyuiop15"); // Here we specify the password of the wifi
-
-    QMap<QString, QVariant> ip4;
-    ip4["method"] = "auto";
-
-    QMap<QString, QVariant> ip6;
-    ip6["method"] = "ignore";
-
-    QMap<QString, QMap<QString, QVariant> > map;
-    map["connection"] = connection;
-    map["802-11-wireless"] = wifi;
-    map["802-11-wireless-security"] = sec;
-    map["ipv4"] = ip4;
-    map["ipv6"] = ip6;
-
-
-
-    qRegisterMetaType<NMVariantMap>();
-    qDBusRegisterMetaType<NMVariantMap>();
-//    qRegisterMetaType<QMap<QString, QMap<QString, QVariant> > >();
-
-    QVariant v = QVariant::fromValue(map);
-
-    QDBusMessage query = iface.call("AddConnection", v);
-    if(query.type() == QDBusMessage::ReplyMessage) {
-      qDebug() << " %%%%%%%%%%%%%%%%%%%%";
-    }
-    else {
-      qDebug() << query.errorMessage();
-    }
-  }
 }
 
 void Utama::on_ethernetSwitch_clicked(bool checked) {
@@ -194,4 +147,100 @@ void Utama::on_ethernetSwitch_clicked(bool checked) {
 
 void Utama::_onNetworkManagerStateChanged(const int newState) {
     updateUI();
+}
+
+void Utama::_onActiveWifiConnStateChanged(NMActiveConnectionState newState) {
+  if (newState == NM_ACTIVE_CONNECTION_STATE_ACTIVATING ||
+      newState == NM_ACTIVE_CONNECTION_STATE_DEACTIVATING) {
+    return;
+  }
+
+  QString ssid;
+  QString bssid;
+  QString wifiConn;
+
+  if (_activeWifiConnProxy != nullptr) {
+    ssid = _activeWifiConnProxy->property("ssid").toString();
+    bssid = _activeWifiConnProxy->property("bssid").toString();
+    wifiConn = _activeWifiConnProxy->property("wifiConn").toString();
+
+    delete _activeWifiConnProxy;
+    _activeWifiConnProxy = nullptr;
+  }
+
+  if (newState == NM_ACTIVE_CONNECTION_STATE_ACTIVATED) {
+    return;
+  }
+
+  // Handle possible incorrect password.
+
+  PasswordDialog passwordDialog(ssid, bssid, this);
+  QString currPassword = ConnectionProxy(wifiConn).getSecrets("802-11-wireless-security")["802-11-wireless-security"]["psk"].toString();
+  passwordDialog.setPassword(currPassword);
+
+  if (!passwordDialog.exec()) {
+    return;
+  }
+
+  try {
+    _connectToWifiNetwork(bssid, passwordDialog.getPassword());
+  } catch (const std::runtime_error &except) {
+    updateUI();
+  }
+}
+
+void Utama::_connectToWifiNetwork(const QString& bssid, QString password) {
+  QString ap;
+  bool apFound = false;
+
+  foreach(ap, wifi->getListAP()) {
+    if (bssid == wifi->resolveBSSID(ap)) {
+      apFound = true;
+      break;
+    }
+  }
+
+  if (!apFound) {
+    QString errMsg = "Could not found the Access Point with BSSID=" + bssid;
+    throw std::runtime_error(errMsg.toUtf8().constData());
+  }
+
+  QString ssid = wifi->resolveSSID(ap);
+
+  debus->wifiDevicesSetAutoconnect(false);
+  debus->deactivateWifiConnections();
+
+  QString wifiConnId = Utama::WIFI_CONNECTION_ID_PREFIX + " (" + ssid + "-" + bssid + ")";
+  QString wifiConn;
+
+  try {
+    wifiConn = debus->getConnectionById(wifiConnId);
+  } catch (const std::runtime_error &except) {
+    wifiConn = debus->createAutomaticWifiConnection(wifiConnId, ssid);
+  }
+
+  if (!password.isNull()) {
+    ConnectionProxy connProxy(wifiConn);
+
+    ConnectionSettings connSettings = connProxy.getSettings();
+    connSettings["802-11-wireless-security"]["psk"] = password;
+
+    connProxy.update(connSettings);
+  }
+
+  QString activeWifiConn = debus->activateWifiConnection(wifiConn, ap);
+
+  if (_activeWifiConnProxy != nullptr) {
+    delete _activeWifiConnProxy;
+  }
+
+  _activeWifiConnProxy = new ActiveConnectionProxy(activeWifiConn);
+  _activeWifiConnProxy->setProperty("ssid", QVariant(ssid));
+  _activeWifiConnProxy->setProperty("bssid", QVariant(bssid));
+  _activeWifiConnProxy->setProperty("wifiConn", QVariant(wifiConn));
+
+  QObject::connect(_activeWifiConnProxy,
+                   SIGNAL(stateChanged(NMActiveConnectionState)),
+                   this,
+                   SLOT(_onActiveWifiConnStateChanged(NMActiveConnectionState)));
 }

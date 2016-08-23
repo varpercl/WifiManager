@@ -14,8 +14,10 @@ public:
     explicit DbusNetwork(QObject *parent = 0);
     QStringList getDevices() const;
     QStringList getEthernetDevices() const;
+    QStringList getWifiDevices() const;
     QStringList getActiveConnections() const;
     QStringList getEthernetActiveConnections() const;
+    QStringList getWifiActiveConnections() const;
     QString getActiveConnectionType(const QString &activeConn) const;
     QString getProperties(QString property);
     int getStatus() const;
@@ -23,16 +25,21 @@ public:
 
     QStringList getConnections();
     QString getConnectionByUuid(const QString &uuid) const;
+    QString getConnectionById(const QString &id) const;
 
     bool isNetworkingEnabled() const;
     void setNetworkingEnabled(bool enabled) const;
     QString activateConnection(const QString &conn, const QString &device, const QString specific_object="/") const;
     QString activateEthernetConnection(const QString &ethernetConn, const QString ethernetDevice=QString()) const;
+    QString activateWifiConnection(const QString &wifiConn, const QString &ap, const QString wifiDevice=QString()) const;
     void deactivateConnection(const QString &activeConn) const;
     void deactivateEthernetConnections() const;
+    void deactivateWifiConnections() const;
     void disconnectEthernetDevices() const;
     void ethernetDevicesSetAutoconnect(bool autoconnect) const;
+    void wifiDevicesSetAutoconnect(bool autoconnect) const;
     QString createAutomaticEthernetConnection(const QString &uuid, const QString &id) const;
+    QString createAutomaticWifiConnection(const QString &id, const QString &ssid) const;
 
     ~DbusNetwork();
 
