@@ -6,7 +6,9 @@
 #include <QVariant>
 #include <QMetaType>
 
-typedef QMap<QString, QMap<QString, QVariant> > ConnectionSettings;
-Q_DECLARE_METATYPE(ConnectionSettings)
+typedef QMap<QString, QMap<QString, QVariant> > _MapOfMap;
+Q_DECLARE_METATYPE(_MapOfMap)
+
+typedef _MapOfMap ConnectionSettings, ConnectionSecrets;
 
 #endif // TYPEDEFS_H

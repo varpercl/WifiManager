@@ -9,16 +9,17 @@
 #include <QDBusArgument>
 #include <QDBusVariant>
 #include <QDBusObjectPath>
-#include <QDBusMetaType>
-#include <QMetaType>
+#include <QUuid>
 
-#include <NetworkManager/NetworkManager.h>
-#include <dbus-1.0/dbus/dbus-shared.h>
+#include <NetworkManager.h>
+#include <dbus/dbus-shared.h>
 
 #include "dbusnetwork.h"
 #include "typedefs.h"
 #include "activeconnectionproxy.h"
 #include "deviceproxy.hpp"
+#include "settingsproxy.hpp"
+#include "connectionproxy.hpp"
 
 
 DbusNetwork::DbusNetwork(QObject *parent) :
@@ -93,6 +94,18 @@ QStringList DbusNetwork::getEthernetDevices() const {
   return ethernetDevices;
 }
 
+QStringList DbusNetwork::getWifiDevices() const {
+  QStringList wifiDevices;
+
+  foreach (const QString &device, getDevices()) {
+    if (getDeviceType(device) == NM_DEVICE_TYPE_WIFI) {
+      wifiDevices.append(device);
+    }
+  }
+
+  return wifiDevices;
+}
+
 QString DbusNetwork::getProperties(QString property){
 }
 QStringList DbusNetwork::getActiveConnections() const {
@@ -140,6 +153,18 @@ QStringList DbusNetwork::getEthernetActiveConnections() const {
   }
 
   return ethernetActiveConns;
+}
+
+QStringList DbusNetwork::getWifiActiveConnections() const {
+  QStringList wifiActiveConns;
+
+  foreach (const QString &activeConn, getActiveConnections()) {
+    if (getActiveConnectionType(activeConn) == "802-11-wireless") {
+      wifiActiveConns.append(activeConn);
+    }
+  }
+
+  return wifiActiveConns;
 }
 
 QString DbusNetwork::getActiveConnectionType(const QString &activeConn) const {
@@ -249,6 +274,19 @@ QString DbusNetwork::getConnectionByUuid(const QString &uuid) const {
   return reply.value().path();
 }
 
+QString DbusNetwork::getConnectionById(const QString &id) const {
+  foreach (const QString &conn, SettingsProxy::listConnections()) {
+    ConnectionSettings connSettings = ConnectionProxy(conn).getSettings();
+
+    if (connSettings["connection"]["id"].toString() == id) {
+      return conn;
+    }
+  }
+
+  const QString errMsg = "There is not a connection with id: " + id;
+  throw std::runtime_error(errMsg.toUtf8().constData());
+}
+
 bool DbusNetwork::isNetworkingEnabled() const {
   QDBusInterface iface(NM_DBUS_SERVICE,
                         NM_DBUS_PATH,
@@ -327,6 +365,13 @@ QString DbusNetwork::activateEthernetConnection(const QString &ethernetConn,
   return activateConnection(ethernetConn, finalEthernetDevice);
 }
 
+QString DbusNetwork::activateWifiConnection(const QString &wifiConn, const QString &ap, const QString wifiDevice) const {
+  const QString finalWifiDevice = wifiDevice.isNull() ?
+                                        getWifiDevices().first() :
+                                        wifiDevice;
+  return activateConnection(wifiConn, finalWifiDevice, ap);
+}
+
 void DbusNetwork::deactivateConnection(const QString &activeConn) const {
   QDBusInterface iface(NM_DBUS_SERVICE,
                         NM_DBUS_PATH,
@@ -354,6 +399,12 @@ void DbusNetwork::deactivateEthernetConnections() const {
   }
 }
 
+void DbusNetwork::deactivateWifiConnections() const {
+  foreach (const QString &wifiActiveConn, getWifiActiveConnections()) {
+    deactivateConnection(wifiActiveConn);
+  }
+}
+
 void DbusNetwork::disconnectEthernetDevices() const {
   foreach (const QString &ethernetDevice, getEthernetDevices()) {
     DeviceProxy(ethernetDevice).disconnect_();
@@ -366,10 +417,13 @@ void DbusNetwork::ethernetDevicesSetAutoconnect(bool autoconnect) const {
   }
 }
 
-QString DbusNetwork::createAutomaticEthernetConnection(const QString &uuid, const QString &id) const {
-  qDBusRegisterMetaType<ConnectionSettings>();
-  qRegisterMetaType<ConnectionSettings>();
+void DbusNetwork::wifiDevicesSetAutoconnect(bool autoconnect) const {
+  foreach (const QString &wifiDevice, getWifiDevices()) {
+    DeviceProxy(wifiDevice).setAutoconnect(autoconnect);
+  }
+}
 
+QString DbusNetwork::createAutomaticEthernetConnection(const QString &uuid, const QString &id) const {
   ConnectionSettings connSettings;
 
   connSettings["connection"]["uuid"] = uuid;
@@ -380,26 +434,27 @@ QString DbusNetwork::createAutomaticEthernetConnection(const QString &uuid, cons
 
   connSettings["ipv4"]["method"] = "auto";
 
-  QDBusInterface iface(NM_DBUS_SERVICE,
-                        NM_DBUS_PATH_SETTINGS,
-                        NM_DBUS_IFACE_SETTINGS,
-                        QDBusConnection::systemBus());
+  return SettingsProxy::addConnection(connSettings);
+}
 
-  if (!iface.isValid()) {
-    const QDBusError err = iface.lastError();
-    const QString errMsg = err.name() + ": " + err.message();
-    throw std::runtime_error(errMsg.toUtf8().constData());
-  }
+QString DbusNetwork::createAutomaticWifiConnection(const QString &id, const QString &ssid) const {
+  ConnectionSettings connSettings;
 
-  QDBusReply<QDBusObjectPath> reply = iface.call("AddConnection",
-                                                 QVariant::fromValue(connSettings));
+  connSettings["connection"]["uuid"] = QUuid::createUuid().toString().remove('{').remove('}');
+  connSettings["connection"]["id"] = id;
+  connSettings["connection"]["type"] = "802-11-wireless";
 
-  if (!reply.isValid()) {
-    const QString errMsg = reply.error().name() + ": " + reply.error().message();
-    throw std::runtime_error(errMsg.toUtf8().constData());
-  }
+  connSettings["802-11-wireless"]["ssid"] = ssid.toUtf8();  // need to be a QByteArray
+  connSettings["802-11-wireless"]["mode"] = "infrastructure";
+  connSettings["802-11-wireless"]["security"] = "802-11-wireless-security";
 
-  return reply.value().path();
+  connSettings["802-11-wireless-security"]["key-mgmt"] = "wpa-psk";
+  connSettings["802-11-wireless-security"]["auth-alg"] = "open";
+  connSettings["802-11-wireless-security"]["psk"] = "Valid Default PSK Password";  // password length must in range [8, 63]
+
+  connSettings["ipv4"]["method"] = "auto";
+
+  return SettingsProxy::addConnection(connSettings);
 }
 
 void DbusNetwork::_onPropertiesChanged(const QMap<QString, QVariant> properties) {

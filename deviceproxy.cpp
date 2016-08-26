@@ -7,8 +7,8 @@
 #include <QVariant>
 #include <QDBusVariant>
 
-#include <NetworkManager/NetworkManager.h>
-#include <dbus-1.0/dbus/dbus-shared.h>
+#include <NetworkManager.h>
+#include <dbus/dbus-shared.h>
 
 #include "deviceproxy.hpp"
 
