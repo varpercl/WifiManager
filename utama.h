@@ -7,7 +7,7 @@
 #include <QMap>
 #include <QString>
 
-#include <NetworkManager/NetworkManager.h>
+#include <NetworkManager.h>
 
 class ActiveConnectionProxy;
 

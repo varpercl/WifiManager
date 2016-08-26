@@ -8,7 +8,7 @@
 #include <QDBusReply>
 #include <QDBusConnection>
 
-#include <NetworkManager/NetworkManager.h>
+#include <NetworkManager.h>
 
 #include "connectionproxy.hpp"
 

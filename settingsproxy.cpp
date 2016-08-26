@@ -10,7 +10,7 @@
 #include <QMetaType>
 #include <QVariant>
 
-#include <NetworkManager/NetworkManager.h>
+#include <NetworkManager.h>
 
 #include "settingsproxy.hpp"
 

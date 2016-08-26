@@ -6,7 +6,7 @@
 #include <QMap>
 #include <QVariant>
 
-#include <NetworkManager/NetworkManager.h>
+#include <NetworkManager.h>
 
 class ActiveConnectionProxy : public QObject {
 Q_OBJECT

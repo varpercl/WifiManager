@@ -5,6 +5,9 @@ TEMPLATE = app
 
 CONFIG += c++11
 
+INCLUDEPATH += /usr/include/NetworkManager \
+    /usr/include/dbus-1.0
+
 SOURCES += main.cpp\
         utama.cpp \
     dbusnetwork.cpp \

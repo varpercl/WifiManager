@@ -11,8 +11,8 @@
 #include <QDBusObjectPath>
 #include <QUuid>
 
-#include <NetworkManager/NetworkManager.h>
-#include <dbus-1.0/dbus/dbus-shared.h>
+#include <NetworkManager.h>
+#include <dbus/dbus-shared.h>
 
 #include "dbusnetwork.h"
 #include "typedefs.h"

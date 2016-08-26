@@ -7,7 +7,7 @@
 #include <QDBusObjectPath>
 #include <QDBusVariant>
 
-#include <dbus-1.0/dbus/dbus-shared.h>
+#include <dbus/dbus-shared.h>
 
 #include "activeconnectionproxy.h"
 #include "connectionproxy.hpp"
