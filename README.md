@@ -1,15 +1,15 @@
-<<<<<<< HEAD
-##Raspifi
+##Wifi manager
 
 #TO-DO
-- Permitir conectar mediante eth0 o Wifi.
-- Preguntar la contraseña en Wifi. (Funcion conectar a un SSID con password)
-- Icono rojo/verde si el dispositivo actual esta conectado a internet. (emitir signals).
-- Autoconectar a un SSID si ya estaba guardada la red y hay internet con ese SSID.
+- Correct some interface problems, when SSID list lost focus it doesn't select off the current item. The same when it gains focus.
+- Improve wifi password field.
 
 #Build dependencies:
 - libdbus-1-dev
 - network-manager-dev
+- libgl1-mesa-dev
+- g++
+
 =======
 # wifi-manager
 This is a little tool based on qt c++ and qml languaje. It runs over raspberry pi and other platforms
