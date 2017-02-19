@@ -17,9 +17,9 @@
 #include "dbusnetwork.h"
 #include "typedefs.h"
 #include "activeconnectionproxy.h"
-#include "deviceproxy.hpp"
-#include "settingsproxy.hpp"
-#include "connectionproxy.hpp"
+#include "deviceproxy.h"
+#include "settingsproxy.h"
+#include "connectionproxy.h"
 
 
 DbusNetwork::DbusNetwork(QObject *parent) :
@@ -106,8 +106,10 @@ QStringList DbusNetwork::getWifiDevices() const {
   return wifiDevices;
 }
 
-QString DbusNetwork::getProperties(QString property){
+QString DbusNetwork::getProperties(QString /*property*/){
+    return "";
 }
+
 QStringList DbusNetwork::getActiveConnections() const {
     qDebug()<<"INFO : Get active connection ...";
 

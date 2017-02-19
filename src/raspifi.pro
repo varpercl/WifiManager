@@ -9,24 +9,26 @@ INCLUDEPATH += /usr/include/NetworkManager \
     /usr/include/dbus-1.0
 
 SOURCES += main.cpp\
-        utama.cpp \
     dbusnetwork.cpp \
     dbuswifi.cpp \
     activeconnectionproxy.cpp \
     connectionproxy.cpp \
     deviceproxy.cpp \
     settingsproxy.cpp \
-    passworddialog.cpp
+    passworddialog.cpp \
+    wifimanager.cpp
 
-HEADERS  += utama.h \
+HEADERS  += \
     dbusnetwork.h \
     dbuswifi.h \
     typedefs.h \
     activeconnectionproxy.h \
-    connectionproxy.hpp \
-    deviceproxy.hpp \
-    settingsproxy.hpp \
-    passworddialog.h
+    passworddialog.h \
+    deviceproxy.h \
+    wifimanager.h \
+    connectionproxy.h \
+    settingsproxy.h
 
-FORMS    += utama.ui \
-    passwordddialog.ui
+FORMS    += \
+    passwordddialog.ui \
+    wifimanager.ui

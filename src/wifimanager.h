@@ -6,33 +6,38 @@
 #include <dbuswifi.h>
 #include <QMap>
 #include <QString>
+#include <QTimer>
 
 #include <NetworkManager.h>
 
 class ActiveConnectionProxy;
 
 namespace Ui {
-class Utama;
+class WifiManager;
 }
 
-class Utama : public QMainWindow
+class WifiManager : public QMainWindow
 {
     Q_OBJECT
 
 public:
-  explicit Utama(QWidget *parent = 0);
-  void updateUI();
+  explicit WifiManager(QWidget *parent = 0);
 
-  ~Utama();
+  ~WifiManager();
 
 private:
   void _connectToWifiNetwork(const QString& bssid, QString password=QString());
 
 private slots:
-    void on_pushButton_clicked();
+    void on_btnConnect_clicked();
     void on_ethernetSwitch_clicked(bool checked);
     void _onNetworkManagerStateChanged(const int newState);
+    void onActiveConnectionsChanged(const QStringList &actives);
     void _onActiveWifiConnStateChanged(NMActiveConnectionState newState);
+
+    void on_listAccessPoint_currentRowChanged(int currentRow);
+
+    void updateUI();
 
 public:
   static const QString ETHERNET_CONNECTION_UUID;
@@ -40,7 +45,7 @@ public:
   static const QString WIFI_CONNECTION_ID_PREFIX;
 
 private:
-  Ui::Utama *ui;
+  Ui::WifiManager *ui;
   DbusNetwork *debus;
   DbusWifi *wifi;
   ActiveConnectionProxy *_activeWifiConnProxy;

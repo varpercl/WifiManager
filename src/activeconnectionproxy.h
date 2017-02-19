@@ -20,6 +20,7 @@ public:
   NMActiveConnectionState getState() const;
 
 signals:
+
   /**
    * @brief Emitted when the org.freedesktop.NetworkManager.Connection.Active's "State" property changed
    * @param newState the new state value

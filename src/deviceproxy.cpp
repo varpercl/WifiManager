@@ -10,7 +10,7 @@
 #include <NetworkManager.h>
 #include <dbus/dbus-shared.h>
 
-#include "deviceproxy.hpp"
+#include "deviceproxy.h"
 
 
 DeviceProxy::DeviceProxy(const QString device, QObject *parent) :

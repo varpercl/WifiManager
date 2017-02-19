@@ -42,6 +42,6 @@ void PasswordDialog::on_checkBox_stateChanged(int state) {
 }
 
 
-void PasswordDialog::on_lineEdit_textChanged(const QString& text) {
+void PasswordDialog::on_lineEdit_textChanged(const QString& /*text*/) {
   _validatePassword();
 }

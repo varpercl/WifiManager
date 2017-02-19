@@ -25,6 +25,7 @@ signals:
 
 public slots:
     void dumpMessage(QDBusMessage m);
+
 private:
     QString device;
     QString nmDBus;

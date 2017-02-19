@@ -1,10 +1,10 @@
-#include "utama.h"
+#include "wifimanager.h"
 #include <QtWidgets/QApplication>
 
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    Utama w;
+    WifiManager w;
     w.show();
 
     return a.exec();

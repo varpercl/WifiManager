@@ -12,7 +12,7 @@
 
 #include <NetworkManager.h>
 
-#include "settingsproxy.hpp"
+#include "settingsproxy.h"
 
 SettingsProxy::SettingsProxy(QObject *parent) :
                               QObject(parent) { }
